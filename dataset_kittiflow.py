@@ -11,8 +11,13 @@ import random
 from glob import glob
 import os.path as osp
 
-from utils import frame_utils
-from utils.augmentor import FlowAugmentor, SparseFlowAugmentor
+# new added, just to make this file able to works on its own
+from PIL import Image
+import cv2
+cv2.setNumThreads(0)
+cv2.ocl.setUseOpenCL(False)
+
+from utils.augmentor import SparseFlowAugmentor
 
 
 class FlowDataset(data.Dataset):
@@ -20,10 +25,10 @@ class FlowDataset(data.Dataset):
         self.augmentor = None
         self.sparse = sparse
         if aug_params is not None:
-            if sparse:
-                self.augmentor = SparseFlowAugmentor(**aug_params)
-            else:
-                self.augmentor = FlowAugmentor(**aug_params)
+            # if sparse:
+            self.augmentor = SparseFlowAugmentor(**aug_params)
+            # else:
+            #     self.augmentor = FlowAugmentor(**aug_params)
 
         self.is_test = False
         self.init_seed = False
@@ -34,12 +39,13 @@ class FlowDataset(data.Dataset):
     def __getitem__(self, index):
 
         if self.is_test:
-            img1 = frame_utils.read_gen(self.image_list[index][0])
-            img2 = frame_utils.read_gen(self.image_list[index][1])
+            img1 = Image.open(self.image_list[index][0])
+            img2 = Image.open(self.image_list[index][1])
             img1 = np.array(img1).astype(np.uint8)[..., :3]
             img2 = np.array(img2).astype(np.uint8)[..., :3]
             img1 = torch.from_numpy(img1).permute(2, 0, 1).float()
             img2 = torch.from_numpy(img2).permute(2, 0, 1).float()
+            print(self.extra_info)
             return img1, img2, self.extra_info[index]
 
         if not self.init_seed:
@@ -52,14 +58,14 @@ class FlowDataset(data.Dataset):
 
         index = index % len(self.image_list)
         valid = None
-        if self.sparse:
-            flow, valid = frame_utils.readFlowKITTI(self.flow_list[index])
-        else:
-            flow = frame_utils.read_gen(self.flow_list[index])
+        # if self.sparse:
+        flow, valid = readFlowKITTI(self.flow_list[index])
+        # else:
+        #     flow = frame_utils.read_gen(self.flow_list[index])
 
-        img1 = frame_utils.read_gen(self.image_list[index][0])
-        img2 = frame_utils.read_gen(self.image_list[index][1])
-
+        img1 = Image.open(self.image_list[index][0])
+        img2 = Image.open(self.image_list[index][1])
+        
         flow = np.array(flow).astype(np.float32)
         img1 = np.array(img1).astype(np.uint8)
         img2 = np.array(img2).astype(np.uint8)
@@ -73,10 +79,10 @@ class FlowDataset(data.Dataset):
             img2 = img2[..., :3]
 
         if self.augmentor is not None:
-            if self.sparse:
-                img1, img2, flow, valid = self.augmentor(img1, img2, flow, valid)
-            else:
-                img1, img2, flow = self.augmentor(img1, img2, flow)
+            # if self.sparse:
+            img1, img2, flow, valid = self.augmentor(img1, img2, flow, valid)
+            # else:
+            #     img1, img2, flow = self.augmentor(img1, img2, flow)
 
         img1 = torch.from_numpy(img1).permute(2, 0, 1).float()
         img2 = torch.from_numpy(img2).permute(2, 0, 1).float()
@@ -98,7 +104,6 @@ class FlowDataset(data.Dataset):
     def __len__(self):
         return len(self.image_list)
       
-
 class KITTI(FlowDataset):
     def __init__(self, aug_params=None, split='training', root='datasets/KITTI'):
         super(KITTI, self).__init__(aug_params, sparse=True)
@@ -116,42 +121,11 @@ class KITTI(FlowDataset):
 
         if split == 'training':
             self.flow_list = sorted(glob(osp.join(root, 'flow_occ/*_10.png')))
+            
 
-
-# def fetch_dataloader(args, TRAIN_DS='C+T+K+S+H'):
-#     """ Create the data loader for the corresponding trainign set """
-
-#     if args.stage == 'chairs':
-#         aug_params = {'crop_size': args.image_size, 'min_scale': -0.1, 'max_scale': 1.0, 'do_flip': True}
-#         train_dataset = FlyingChairs(aug_params, split='training')
-    
-#     elif args.stage == 'things':
-#         aug_params = {'crop_size': args.image_size, 'min_scale': -0.4, 'max_scale': 0.8, 'do_flip': True}
-#         clean_dataset = FlyingThings3D(aug_params, dstype='frames_cleanpass')
-#         final_dataset = FlyingThings3D(aug_params, dstype='frames_finalpass')
-#         train_dataset = clean_dataset + final_dataset
-
-#     elif args.stage == 'sintel':
-#         aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.6, 'do_flip': True}
-#         things = FlyingThings3D(aug_params, dstype='frames_cleanpass')
-#         sintel_clean = MpiSintel(aug_params, split='training', dstype='clean')
-#         sintel_final = MpiSintel(aug_params, split='training', dstype='final')        
-
-#         if TRAIN_DS == 'C+T+K+S+H':
-#             kitti = KITTI({'crop_size': args.image_size, 'min_scale': -0.3, 'max_scale': 0.5, 'do_flip': True})
-#             hd1k = HD1K({'crop_size': args.image_size, 'min_scale': -0.5, 'max_scale': 0.2, 'do_flip': True})
-#             train_dataset = 100*sintel_clean + 100*sintel_final + 200*kitti + 5*hd1k + things
-
-#         elif TRAIN_DS == 'C+T+K/S':
-#             train_dataset = 100*sintel_clean + 100*sintel_final + things
-
-#     elif args.stage == 'kitti':
-#         aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.4, 'do_flip': False}
-#         train_dataset = KITTI(aug_params, split='training')
-
-#     train_loader = data.DataLoader(train_dataset, batch_size=args.batch_size, 
-#         pin_memory=False, shuffle=True, num_workers=4, drop_last=True)
-
-#     print('Training with %d image pairs' % len(train_dataset))
-#     return train_loader
-
+def readFlowKITTI(filename):
+    flow = cv2.imread(filename, cv2.IMREAD_ANYDEPTH|cv2.IMREAD_COLOR)
+    flow = flow[:,:,::-1].astype(np.float32)
+    flow, valid = flow[:, :, :2], flow[:, :, 2]
+    flow = (flow - 2**15) / 64.0
+    return flow, valid
