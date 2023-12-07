@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.utils.data as data # added
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
 from raft import RAFT
 import evaluate
+import dataset_kittiflow
 import datasets
-
 from torch.utils.tensorboard import SummaryWriter
 
 try:
@@ -147,6 +148,10 @@ def train(args):
     if args.stage != 'chairs':
         model.module.freeze_bn()
 
+    # aug_params = {'crop_size': args.image_size, 'min_scale': -0.2, 'max_scale': 0.4, 'do_flip': False}
+    # train_dataset = dataset_kittiflow.KITTI(aug_params, split='training')
+    # train_loader = train_loader = data.DataLoader(train_dataset, batch_size=args.batch_size, 
+    #                 pin_memory=False, shuffle=True, num_workers=4, drop_last=True)
     train_loader = datasets.fetch_dataloader(args)
     optimizer, scheduler = fetch_optimizer(args, model)
 

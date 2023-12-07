@@ -44,8 +44,8 @@ def create_kitti_submission(model, iters=24, output_path='kitti_submission'):
 def validate_kitti(model, iters=24):
     """ Peform validation using the KITTI-2015 (train) split """
     model.eval()
-    # val_dataset = datasets.KITTI(split='training')
-    val_dataset = dataset_kittiflow.KITTI(split='training')
+    val_dataset = datasets.KITTI(split='training')
+    # val_dataset = dataset_kittiflow.KITTI(split='training')
     # val_dataset = torchvision.datasets.KittiFlow(root="datasets/KITTI", split='training')
     
     out_list, epe_list = [], []
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         # elif args.dataset == 'sintel':
         #     validate_sintel(model.module)
 
-        if args.dataset == 'kitti':
-            validate_kitti(model.module, iters=10)
+        # if args.dataset == 'kitti':
+        validate_kitti(model.module, iters=10)
 
 
