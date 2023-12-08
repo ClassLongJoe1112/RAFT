@@ -45,7 +45,6 @@ class FlowDataset(data.Dataset):
             img2 = np.array(img2).astype(np.uint8)[..., :3]
             img1 = torch.from_numpy(img1).permute(2, 0, 1).float()
             img2 = torch.from_numpy(img2).permute(2, 0, 1).float()
-            print(self.extra_info)
             return img1, img2, self.extra_info[index]
 
         if not self.init_seed:

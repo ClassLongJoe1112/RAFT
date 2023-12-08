@@ -33,7 +33,7 @@ def viz(img, flo):
     import matplotlib.pyplot as plt
     plt.imshow(img_flo / 255.0)
     plt.show(block=False)
-    plt.pause(1)
+    plt.pause(0.01)
     # cv2.imshow('image', img_flo[:, :, [2,1,0]]/255.0)
     # cv2.waitKey()
 
@@ -60,10 +60,11 @@ def demo(args):
             padder = InputPadder(image1.shape)
             image1, image2 = padder.pad(image1, image2)
             t1 = time.time()
-            flow_low, flow_up = model(image1, image2, iters=1, test_mode=True)
+            flow_low, flow_up = model(image1, image2, iters=10, test_mode=True)
             torch.cuda.synchronize()
             t2 = time.time()
-            print("--- %s seconds ---" % (t2-t1))
+            # print("--- %s seconds ---" % (t2-t1))
+            print("--- %s fps ---" % (1/(t2-t1)))
             img_flo_arr.append((image1, flow_up))
         
         for i in range(len(img_flo_arr)):

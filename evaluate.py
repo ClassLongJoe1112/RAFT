@@ -18,13 +18,12 @@ from utils import frame_utils
 from raft import RAFT
 from utils.utils import InputPadder, forward_interpolate
 
-import torchvision
 
 @torch.no_grad()
 def create_kitti_submission(model, iters=24, output_path='kitti_submission'):
     """ Create submission for the Sintel leaderboard """
     model.eval()
-    test_dataset = datasets.KITTI(split='testing', aug_params=None)
+    test_dataset = dataset_kittiflow.KITTI(split='testing', aug_params=None)
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -36,7 +35,6 @@ def create_kitti_submission(model, iters=24, output_path='kitti_submission'):
 
         _, flow_pr = model(image1, image2, iters=iters, test_mode=True)
         flow = padder.unpad(flow_pr[0]).permute(1, 2, 0).cpu().numpy()
-
         output_filename = os.path.join(output_path, frame_id)
         frame_utils.writeFlowKITTI(output_filename, flow)
 
@@ -44,9 +42,8 @@ def create_kitti_submission(model, iters=24, output_path='kitti_submission'):
 def validate_kitti(model, iters=24):
     """ Peform validation using the KITTI-2015 (train) split """
     model.eval()
-    val_dataset = datasets.KITTI(split='training')
-    # val_dataset = dataset_kittiflow.KITTI(split='training')
-    # val_dataset = torchvision.datasets.KittiFlow(root="datasets/KITTI", split='training')
+    # val_dataset = datasets.KITTI(split='training')
+    val_dataset = dataset_kittiflow.KITTI(split='training')
     
     out_list, epe_list = [], []
     for val_id in range(len(val_dataset)):
@@ -96,17 +93,9 @@ if __name__ == '__main__':
     model.cuda()
     model.eval()
 
-    # create_sintel_submission(model.module, warm_start=True)
     create_kitti_submission(model.module)
 
     with torch.no_grad():
-        # if args.dataset == 'chairs':
-        #     validate_chairs(model.module)
-
-        # elif args.dataset == 'sintel':
-        #     validate_sintel(model.module)
-
-        # if args.dataset == 'kitti':
         validate_kitti(model.module, iters=10)
 
 

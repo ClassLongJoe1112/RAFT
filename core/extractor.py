@@ -1,8 +1,23 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils.utils import InputPadder
 
+def padd(x, y):
+        # Get the shapes of x and y
+        # Get the shapes of x and y
+        shape_x = x.shape
+        shape_y = y.shape
 
+        # Calculate the padding for each dimension
+        pad_y = [max(size_x - size_y, 0) for size_x, size_y in zip(shape_x, shape_y)]
+
+        # Pad the tensor y to match the shape of x
+        padded_y = torch.nn.functional.pad(y, (0, pad_y[2], 0, pad_y[1], 0, pad_y[0]))
+
+        # Now, padded_y has the same shape as x
+        return padded_y
+    
 class ResidualBlock(nn.Module):
     def __init__(self, in_planes, planes, norm_fn='group', stride=1):
         super(ResidualBlock, self).__init__()
@@ -163,8 +178,7 @@ class BasicEncoder(nn.Module):
         
         self.in_planes = dim
         return nn.Sequential(*layers)
-
-
+    
     def forward(self, x):
 
         # if input is list, combine batch dimension
